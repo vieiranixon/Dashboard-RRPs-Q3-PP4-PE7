@@ -262,13 +262,38 @@ tbody tr:last-child td{border-bottom:none}
 .sec-anim{opacity:0;transform:translateY(16px);transition:opacity .5s ease,transform .5s ease}
 .sec-anim.vis{opacity:1;transform:translateY(0)}
 /* ── PRINT */
-@media print{
-  .sidebar,.topbar,.filters,.btn,.freset,.footer,.mov,.ov,.sb-tog{display:none!important}
-  .app{display:block;height:auto}.content{overflow:visible}.scroll{overflow:visible;padding:0}
-  .hero{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .kpi,.card,.ins{break-inside:avoid}.inner{padding:16px}
-}
 .toast.show{transform:translateY(0) scale(1);opacity:1}
+</style>
+<style id="print-css" media="print">
+/* Regras de impressão fora de @media print: no beforeprint a folha passa a media=all,
+   o layout de impressão é aplicado na tela e os gráficos são medidos na largura certa. */
+@page{size:A4 landscape;margin:10mm}
+body.printing{width:277mm;margin:0}
+  *,*::before,*::after{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  html,body{height:auto!important;background:#fff}
+  .sidebar,.topbar,.filters,.btn,.freset,.footer,.mov,.ov,.sb-tog,.toast{display:none!important}
+  .app{display:block;height:auto}.content{overflow:visible;height:auto}.scroll{overflow:visible!important;height:auto!important;padding:0}
+  .inner{padding:12px 0}
+  /* seções e cards que só aparecem ao rolar a tela ficavam invisíveis (opacity 0) mas ocupavam espaço */
+  .sec-anim,.kpi,.ins{opacity:1!important;transform:none!important;animation:none!important;transition:none!important}
+  .kpi-fill{transition:none!important}
+  /* layout fixo de impressão, independente da largura da página */
+  .kgrid{grid-template-columns:repeat(6,1fr)}
+  .cg2{grid-template-columns:1fr 1fr}.cg3{grid-template-columns:2.2fr 1fr 1fr}
+  /* canvas do Chart.js não pode impor largura mínima às colunas do grid */
+  .cg2>*,.cg3>*,.kgrid>*{min-width:0}
+  .chart-wrap{min-width:0;max-width:100%;overflow:hidden}
+  #ws,#wt{height:420px!important}
+  .card,.kpi,.ins{break-inside:avoid;page-break-inside:avoid;box-shadow:none}
+  .sh{break-after:avoid;page-break-after:avoid}
+  /* tabela completa, sem corte lateral nem texto truncado */
+  .tbl-wrap{overflow:visible}
+  table{font-size:10px}
+  thead{display:table-header-group}
+  tr{break-inside:avoid;page-break-inside:avoid}
+  thead th,tbody td{padding:6px 8px}
+  tbody td span[title]{display:block!important;max-width:none!important;-webkit-line-clamp:unset!important;overflow:visible!important}
+  th:nth-child(9),td:nth-child(9){display:none}
 </style>
 <link href="manifest.json" rel="manifest"/><meta content="#B5622A" name="theme-color"/></head>
 <body>
@@ -446,7 +471,7 @@ tbody tr:last-child td{border-bottom:none}
 </div>
 <div class="card">
 <div class="card-ttl">Ações Recomendadas</div>
-<div class="card-sub">Frequência dos tipos de recomendação (estático)</div>
+<div class="card-sub">Frequência dos tipos de recomendação no período filtrado</div>
 <div class="chart-wrap" style="height:200px"><canvas aria-label="Recomendacoes" id="cRec" role="img"></canvas></div>
 </div>
 </div>
@@ -647,9 +672,9 @@ function rHero(){
     const ht=document.getElementById('hring-txt');if(ht)ht.textContent=rPct+'%';
     const hs=document.getElementById('health-score');
     if(hs){
-      if(rPct>=90){hs.style.background='rgba(58,148,100,.25)';hs.style.color='#5FC98A';hs.textContent='Saude Excelente'}
-      else if(rPct>=70){hs.style.background='rgba(168,110,34,.2)';hs.style.color='#DBA050';hs.textContent='Saude Boa'}
-      else{hs.style.background='rgba(173,46,46,.2)';hs.style.color='#E07070';hs.textContent='Requer Atencao'}
+      if(rPct>=90){hs.style.background='rgba(58,148,100,.25)';hs.style.color='#5FC98A';hs.textContent='Saúde Excelente'}
+      else if(rPct>=70){hs.style.background='rgba(168,110,34,.2)';hs.style.color='#DBA050';hs.textContent='Saúde Boa'}
+      else{hs.style.background='rgba(173,46,46,.2)';hs.style.color='#E07070';hs.textContent='Requer Atenção'}
     }
   },100);
 }
@@ -669,11 +694,11 @@ function rKPIs(){
   setTimeout(()=>{const r2=document.getElementById('ring2');if(r2)r2.style.strokeDashoffset=off;document.getElementById('rpct').textContent=rPct+'%'},80);
   const KS=[
     {tag:"Total de RRPs",val:n,sub:"registros",col:A,bg:AB,ico:"&#9632;",bw:100,bc:A,badge:null},
-    {tag:"Realizadas",val:real,sub:rPct+"% concluidas",col:G,bg:GB,ico:"&#10003;",bw:rPct,bc:G,badge:rPct>=90?{t:"Excelente",bg:GB,c:G}:{t:"Bom",bg:GB,c:G}},
-    {tag:"Pendentes",val:pend,sub:Math.round(pend/n*100)+"% em aberto",col:pend>5?R:A,bg:pend>5?RB:AB,ico:"&#9679;",bw:Math.round(pend/n*100),bc:pend>5?R:A,badge:pend===0?{t:"Zerado",bg:GB,c:G}:pend<=3?{t:"Atencao",bg:AB,c:A}:{t:"Critico",bg:RB,c:R}},
-    {tag:"Prioridade Alta",val:alta,sub:aPct+"% das RRPs",col:R,bg:RB,ico:"&#9650;",bw:aPct,bc:R,badge:aPct>60?{t:"Critico",bg:RB,c:R}:{t:"Controlado",bg:GB,c:G}},
-    {tag:"Tempo Medio",val:avg!=null?avg+"d":"--",sub:"dias p/ implementar",col:P,bg:PB,ico:"&#9201;",bw:avg!=null?Math.min(100,avg/50*100):0,bc:P,badge:avg!=null?avg<15?{t:"Rapido",bg:GB,c:G}:avg<30?{t:"Moderado",bg:AB,c:A}:{t:"Lento",bg:RB,c:R}:null},
-    {tag:"Setores Ativos",val:sets,sub:"areas com RRPs",col:T,bg:TB,ico:"&#9654;",bw:sets/6*100,bc:T,badge:null}
+    {tag:"Realizadas",val:real,sub:rPct+"% concluídas",col:G,bg:GB,ico:"&#10003;",bw:rPct,bc:G,badge:rPct>=90?{t:"Excelente",bg:GB,c:G}:{t:"Bom",bg:GB,c:G}},
+    {tag:"Pendentes",val:pend,sub:Math.round(pend/n*100)+"% em aberto",col:pend>5?R:A,bg:pend>5?RB:AB,ico:"&#9679;",bw:Math.round(pend/n*100),bc:pend>5?R:A,badge:pend===0?{t:"Zerado",bg:GB,c:G}:pend<=3?{t:"Atenção",bg:AB,c:A}:{t:"Crítico",bg:RB,c:R}},
+    {tag:"Prioridade Alta",val:alta,sub:aPct+"% das RRPs",col:R,bg:RB,ico:"&#9650;",bw:aPct,bc:R,badge:aPct>60?{t:"Crítico",bg:RB,c:R}:{t:"Controlado",bg:GB,c:G}},
+    {tag:"Tempo Médio",val:avg!=null?avg+"d":"--",sub:"dias p/ implementar",col:P,bg:PB,ico:"&#9201;",bw:avg!=null?Math.min(100,avg/50*100):0,bc:P,badge:avg!=null?avg<15?{t:"Rápido",bg:GB,c:G}:avg<30?{t:"Moderado",bg:AB,c:A}:{t:"Lento",bg:RB,c:R}:null},
+    {tag:"Setores Ativos",val:sets,sub:"áreas com RRPs",col:T,bg:TB,ico:"&#9654;",bw:sets/6*100,bc:T,badge:null}
   ];
   document.getElementById('kgrid').innerHTML=KS.map((k,i)=>`
     <div class="kpi" style="animation-delay:${i*60}ms">
@@ -706,6 +731,7 @@ function bO(ia){return{responsive:true,maintainAspectRatio:false,
   scales:{x:{grid:{color:ia==='y'?GRD:'transparent'},ticks:{color:TK,font:{size:11,family:'Inter'}}},
           y:{grid:{color:ia==='x'?GRD:'transparent'},ticks:{color:TK,font:{size:11,family:'Inter'}}}}}}
 
+function recCounts(d){const m={};d.forEach(r=>{const k=String(r.rec||'').trim();if(k&&k!=='--')m[k]=(m[k]||0)+1});return Object.entries(m).sort((a,b)=>b[1]-a[1])}
 function rCharts(){
   const d=filt;
   // Timeline
@@ -729,21 +755,21 @@ function rCharts(){
   document.getElementById('ws').style.height=Math.max(200,sl.length*46+60)+'px';
   dc('cSetor');
   document.getElementById('leg-setor').innerHTML=`<span class="li"><span class="ld" style="background:${A}"></span>Total</span><span class="li"><span class="ld" style="background:${R}"></span>Alta Prioridade</span>`;
-  CH['cSetor']=new Chart(document.getElementById('cSetor'),{type:'bar',indexAxis:'y',data:{labels:sl,datasets:[{label:'Total',data:sl.map(s=>sg[s].t),backgroundColor:A+'BB',borderRadius:4,borderSkipped:false},{label:'Alta',data:sl.map(s=>sg[s].a),backgroundColor:R+'BB',borderRadius:4,borderSkipped:false}]},options:bO('y')});
+  CH['cSetor']=new Chart(document.getElementById('cSetor'),{type:'bar',data:{labels:sl,datasets:[{label:'Total',data:sl.map(s=>sg[s].t),backgroundColor:A+'BB',borderRadius:4,borderSkipped:false},{label:'Alta',data:sl.map(s=>sg[s].a),backgroundColor:R+'BB',borderRadius:4,borderSkipped:false}]},options:Object.assign(bO('y'),{indexAxis:'y'})});
   // Tempo
   const tg={};d.forEach(r=>{if(r.tempo!==null&&r.tempo!==undefined&&!isNaN(Number(r.tempo))&&Number(r.tempo)>=0){if(!tg[r.setor])tg[r.setor]=[];tg[r.setor].push(r.tempo)}});
   const tl=Object.keys(tg).map(s=>[s,+(tg[s].reduce((a,b)=>a+b,0)/tg[s].length).toFixed(1)]).sort((a,b)=>b[1]-a[1]);
   document.getElementById('wt').style.height=Math.max(200,tl.length*46+60)+'px';
   dc('cTempo');
-  CH['cTempo']=new Chart(document.getElementById('cTempo'),{type:'bar',indexAxis:'y',data:{labels:tl.map(x=>x[0]),datasets:[{label:'Dias',data:tl.map(x=>x[1]),backgroundColor:P+'BB',borderRadius:4,borderSkipped:false}]},options:bO('y')});
+  CH['cTempo']=new Chart(document.getElementById('cTempo'),{type:'bar',data:{labels:tl.map(x=>x[0]),datasets:[{label:'Dias',data:tl.map(x=>x[1]),backgroundColor:P+'BB',borderRadius:4,borderSkipped:false}]},options:Object.assign(bO('y'),{indexAxis:'y'})});
   // Prioridade
   const pc={'Alta':0,'M\u00e9dia':0,'Baixa':0};d.forEach(r=>{const k=r.prio;pc[k]=(pc[k]||0)+1});
   dc('cPrio');
   document.getElementById('leg-prio').innerHTML=`<span class="li"><span class="ld" style="background:${R}"></span>Alta <b style="color:var(--txt);margin-left:2px">${pc['Alta']||0}</b></span><span class="li"><span class="ld" style="background:${A}"></span>M\u00e9dia <b style="color:var(--txt);margin-left:2px">${pc['M\u00e9dia']||0}</b></span><span class="li"><span class="ld" style="background:${O}"></span>Baixa <b style="color:var(--txt);margin-left:2px">${pc['Baixa']||0}</b></span>`;
   CH['cPrio']=new Chart(document.getElementById('cPrio'),{type:'doughnut',data:{labels:['Alta','M\u00e9dia','Baixa'],datasets:[{data:[pc['Alta']||0,pc['M\u00e9dia']||0,pc['Baixa']||0],backgroundColor:[R,A,O],borderWidth:0,hoverOffset:7}]},options:{responsive:true,maintainAspectRatio:false,cutout:'73%',plugins:{legend:{display:false}}}});
   // Recomendacoes
-  dc('cRec');const ro=bO('x');ro.scales.x.ticks.maxRotation=38;ro.scales.x.ticks.autoSkip=false;ro.scales.x.ticks.font={size:10,family:'Inter'};
-  CH['cRec']=new Chart(document.getElementById('cRec'),{type:'bar',data:{labels:REC.map(x=>x[0]),datasets:[{label:'Ocorrencias',data:REC.map(x=>x[1]),backgroundColor:O+'CC',borderRadius:4,borderSkipped:false}]},options:ro});
+  dc('cRec');const RECD=recCounts(d);const ro=bO('x');ro.scales.x.ticks.maxRotation=38;ro.scales.x.ticks.autoSkip=false;ro.scales.x.ticks.font={size:10,family:'Inter'};
+  CH['cRec']=new Chart(document.getElementById('cRec'),{type:'bar',data:{labels:RECD.map(x=>x[0]),datasets:[{label:'Ocorrências',data:RECD.map(x=>x[1]),backgroundColor:O+'CC',borderRadius:4,borderSkipped:false}]},options:ro});
   
 }
 
@@ -761,26 +787,27 @@ function rInsights(){
   const stg={};d.forEach(r=>{if(r.tempo!==null&&r.tempo!==undefined&&!isNaN(Number(r.tempo))&&Number(r.tempo)>=0){if(!stg[r.setor])stg[r.setor]=[];stg[r.setor].push(r.tempo)}});
   const slowS=Object.entries(stg).map(([s,ts])=>[s,ts.reduce((a,b)=>a+b,0)/ts.length]).sort((a,b)=>b[1]-a[1])[0];
   const fastS=Object.entries(stg).map(([s,ts])=>[s,ts.reduce((a,b)=>a+b,0)/ts.length]).sort((a,b)=>a[1]-b[1])[0];
+  const rcs=recCounts(d),rc1=rcs[0],rc2=rcs[1];
   const ins=[
-    {sev:rPct>=90?'ok':rPct>=70?'warn':'bad',ico:'&#128200;',ib:GB,ic:GM,ttl:'Taxa de Implementacao',
+    {sev:rPct>=90?'ok':rPct>=70?'warn':'bad',ico:'&#128200;',ib:GB,ic:GM,ttl:'Taxa de Implementação',
      txt:`${rPct}% das ${n} RRPs filtradas foram implementadas com sucesso. ${pend} registro${pend!==1?'s':''} ainda em aberto.`,
-     pill:rPct>=90?'Excelente':rPct>=70?'Bom':'Atencao necessaria',pb:rPct>=90?GB:rPct>=70?AB:RB,pc:rPct>=90?G:rPct>=70?A:R,
-     meta:`${real} concluidas de ${n}`},
-    {sev:aPct>60?'bad':aPct>40?'warn':'ok',ico:'&#9888;',ib:RB,ic:R,ttl:'Concentracao de Risco por Prioridade',
-     txt:`${aPct}% das RRPs sao classificadas como Alta prioridade.${topS?` O setor "${topS[0]}" e o mais critico com ${topS[1]} recomendacoes.`:''}`,
-     pill:aPct>60?'Nivel critico':aPct>40?'Monitorar':'Controlado',pb:aPct>60?RB:aPct>40?AB:GB,pc:aPct>60?R:aPct>40?A:G,
+     pill:rPct>=90?'Excelente':rPct>=70?'Bom':'Atenção necessária',pb:rPct>=90?GB:rPct>=70?AB:RB,pc:rPct>=90?G:rPct>=70?A:R,
+     meta:`${real} concluídas de ${n}`},
+    {sev:aPct>60?'bad':aPct>40?'warn':'ok',ico:'&#9888;',ib:RB,ic:R,ttl:'Concentração de Risco por Prioridade',
+     txt:`${aPct}% das RRPs são classificadas como Alta prioridade.${topS?` O setor "${topS[0]}" é o mais crítico com ${topS[1]} recomendações.`:''}`,
+     pill:aPct>60?'Nível crítico':aPct>40?'Monitorar':'Controlado',pb:aPct>60?RB:aPct>40?AB:GB,pc:aPct>60?R:aPct>40?A:G,
      meta:`${d.filter(x=>x.prio==='Alta').length} RRPs de alta prio`},
-    {sev:avg===null?'info':avg<15?'ok':avg<30?'warn':'bad',ico:'&#9201;',ib:PB,ic:P,ttl:'Velocidade de Resolucao',
-     txt:avg!=null?`Tempo medio de ${avg} dias para implementacao.${slowS?` Setor mais lento: "${slowS[0]}" com ${slowS[1].toFixed(1)}d em media.`:''}`:'Dados de tempo insuficientes para o filtro selecionado.',
-     pill:avg===null?'Sem dados':avg<15?'Rapido':avg<30?'Moderado':'Necessita otimizacao',pb:avg===null?GRB:avg<15?GB:avg<30?AB:RB,pc:avg===null?GR:avg<15?G:avg<30?A:R,
+    {sev:avg===null?'info':avg<15?'ok':avg<30?'warn':'bad',ico:'&#9201;',ib:PB,ic:P,ttl:'Velocidade de Resolução',
+     txt:avg!=null?`Tempo médio de ${avg} dias para implementação.${slowS?` Setor mais lento: "${slowS[0]}" com ${slowS[1].toFixed(1)}d em média.`:''}`:'Dados de tempo insuficientes para o filtro selecionado.',
+     pill:avg===null?'Sem dados':avg<15?'Rápido':avg<30?'Moderado':'Necessita otimização',pb:avg===null?GRB:avg<15?GB:avg<30?AB:RB,pc:avg===null?GR:avg<15?G:avg<30?A:R,
      meta:avg!=null?`baseado em ${ts.length} registros`:''},
-    {sev:pend===0?'ok':pend<=3?'warn':'bad',ico:'&#128204;',ib:AB,ic:A,ttl:'Backlog de Pendencias',
-     txt:`${pend} recomendacao${pend!==1?'es':''} ainda pendente${pend!==1?'s':''} ou com nota aberta.${pend>5?' Atencao: volume elevado pode indicar gargalo operacional.':pend>0?' Acompanhar progresso.':'Todos os itens foram implementados.'}`,
-     pill:pend===0?'Zerado':pend<=3?'Atencao':pend<=8?'Elevado':'Critico',pb:pend===0?GB:pend<=3?AB:RB,pc:pend===0?G:pend<=3?A:R,
+    {sev:pend===0?'ok':pend<=3?'warn':'bad',ico:'&#128204;',ib:AB,ic:A,ttl:'Backlog de Pendências',
+     txt:`${pend} recomendaç${pend!==1?'ões':'ão'} ainda pendente${pend!==1?'s':''} ou com nota aberta.${pend>5?' Atenção: volume elevado pode indicar gargalo operacional.':pend>0?' Acompanhar progresso.':'Todos os itens foram implementados.'}`,
+     pill:pend===0?'Zerado':pend<=3?'Atenção':pend<=8?'Elevado':'Crítico',pb:pend===0?GB:pend<=3?AB:RB,pc:pend===0?G:pend<=3?A:R,
      meta:`${pend} de ${n} em aberto`},
-    {sev:'info',ico:'&#128161;',ib:OB,ic:O,ttl:'Acao Preventiva Predominante',
-     txt:'"Verificar/Normalizar" lidera o ranking com 39% das recomendacoes (55 ocorrencias), seguida de "Operacional" (20). Indica perfil majoritariamente preventivo do periodo.',
-     pill:'Foco preventivo',pb:OB,pc:O,meta:'Top-1 de 10 tipos de acao'}
+    {sev:'info',ico:'&#128161;',ib:OB,ic:O,ttl:'Ação Preventiva Predominante',
+     txt:rc1?`"${rc1[0]}" lidera o ranking com ${Math.round(rc1[1]/n*100)}% das recomendações (${rc1[1]} ocorrências)${rc2?`, seguida de "${rc2[0]}" (${rc2[1]})`:''}.${rc1[0]==='Verificar/Normalizar'?' Indica perfil majoritariamente preventivo do período.':''}`:'Sem dados de recomendação para o filtro selecionado.',
+     pill:'Foco preventivo',pb:OB,pc:O,meta:rc1?`Top-1 de ${rcs.length} tipos de ação`:''}
   ];
   document.getElementById('ifeed').innerHTML=ins.map((ins,i)=>`
     <div class="ins ${ins.sev}" style="animation-delay:${i*80}ms">
@@ -833,12 +860,12 @@ function openRow(i){
     <div class="dr"><span class="dk">Unidade</span><span class="dv">${r.unidade}</span></div>
     <div class="dr"><span class="dk">TAG</span><span class="dv">${r.tag}</span></div>
     <div class="dr"><span class="dk">Setor</span><span class="dv">${r.setor}</span></div>
-    <div class="dr"><span class="dk">Mes de referencia</span><span class="dv">${fmtMes(r.mes)}</span></div>
+    <div class="dr"><span class="dk">Mês de referência</span><span class="dv">${fmtMes(r.mes)}</span></div>
     <div class="dr"><span class="dk">Anomalia</span><span class="dv" style="font-size:12px">${r.anomalia||'--'}</span></div>
-    <div class="dr"><span class="dk">Recomendacao</span><span class="dv">${r.rec||'--'}</span></div>
+    <div class="dr"><span class="dk">Recomendação</span><span class="dv">${r.rec||'--'}</span></div>
     <div class="dr"><span class="dk">Prioridade</span><span class="dv"><span class="pill ${pm[r.prio]||''}">${r.prio}</span></span></div>
     <div class="dr"><span class="dk">Status</span><span class="dv"><span class="pill ${sm[r.status]||''}">${r.status}</span></span></div>
-    <div class="dr"><span class="dk">Tempo implementacao</span><span class="dv">${(r.tempo!==null&&r.tempo!==undefined&&!isNaN(Number(r.tempo)))?Number(r.tempo)+' dias':'Nao registrado'}</span></div>`;
+    <div class="dr"><span class="dk">Tempo de implementação</span><span class="dv">${(r.tempo!==null&&r.tempo!==undefined&&!isNaN(Number(r.tempo)))?Number(r.tempo)+' dias':'Não registrado'}</span></div>`;
   document.getElementById('dov').classList.add('open');
 }
 function closeDM(e){if(!e||e.target===document.getElementById('dov'))document.getElementById('dov').classList.remove('open')}
@@ -1072,6 +1099,28 @@ function rHeatmap(){
     entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('vis');}});
   },{threshold:.06,rootMargin:'0px 0px -40px 0px'});
   document.querySelectorAll('.sec-anim').forEach(el=>obs.observe(el));
+})();
+
+// ── IMPRESSÃO / PDF ───────────────────────────────────────────────────────────
+// Os gráficos (Chart.js) são canvas com tamanho fixo em pixels. Antes de imprimir,
+// aplicamos o layout de impressão na própria tela e redesenhamos os gráficos nessa
+// largura; ao terminar, voltamos ao layout normal.
+(function(){
+  const sheet=document.getElementById('print-css');
+  const redraw=()=>Object.values(CH).forEach(c=>{try{c.resize()}catch(e){}});
+  const enter=()=>{
+    document.querySelectorAll('.sec-anim').forEach(el=>el.classList.add('vis'));
+    document.body.classList.add('printing');
+    if(sheet)sheet.media='all';
+    redraw();
+  };
+  const leave=()=>{
+    document.body.classList.remove('printing');
+    if(sheet)sheet.media='print';
+    redraw();
+  };
+  window.addEventListener('beforeprint',enter);
+  window.addEventListener('afterprint',leave);
 })();
 
 // ── PATCH rCharts to include ranking + heatmap ────────────────────────────────
