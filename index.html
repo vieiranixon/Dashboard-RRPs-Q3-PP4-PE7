@@ -198,6 +198,11 @@ tbody tr:last-child td{border-bottom:none}
 .sr{background:var(--green-bg);color:var(--green)}.sr::before{background:var(--green-mid)}
 .sp{background:var(--amber-bg);color:var(--amber)}.sp::before{background:var(--amber)}
 .sn{background:var(--purple-bg);color:var(--purple)}.sn::before{background:var(--purple)}
+.sa{background:var(--blue-bg);color:var(--blue)}.sa::before{background:var(--blue)}
+.sx{background:var(--bg2);color:var(--txt2)}.sx::before{background:var(--txt3)}
+.tst{flex:0 0 auto;min-width:84px;display:flex;justify-content:flex-end}
+.tb2-fill.stk{display:flex;background:none}
+.tb2-fill.stk span{display:block;height:100%}
 .tbl-prog{height:3px;background:var(--bg2);border-radius:2px;overflow:hidden;min-width:50px}
 .tbl-prog-fill{height:100%;border-radius:2px;background:var(--accent)}
 .tbl-more{padding:12px 18px;font-size:12px;color:var(--txt3);border-top:1px solid var(--border);background:var(--bg2)}
@@ -286,6 +291,12 @@ body.printing{width:277mm;margin:0}
   #ws,#wt{height:420px!important}
   .card,.kpi,.ins{break-inside:avoid;page-break-inside:avoid;box-shadow:none}
   .sh{break-after:avoid;page-break-after:avoid}
+  /* insights fluem de uma página para a outra, sem empurrar a seção inteira para a folha seguinte */
+  .ifeed{display:block;margin-bottom:12px}
+  .ins{margin-bottom:8px;padding:10px 14px}
+  .ins-foot{margin-top:5px}
+  /* o card da tabela é maior que uma folha: precisa poder quebrar, senão a listagem começa sempre numa folha nova */
+  .card.tbl-card{break-inside:auto;page-break-inside:auto}
   /* tabela completa, sem corte lateral nem texto truncado */
   .tbl-wrap{overflow:visible}
   table{font-size:10px}
@@ -471,7 +482,8 @@ body.printing{width:277mm;margin:0}
 </div>
 <div class="card">
 <div class="card-ttl">Ações Recomendadas</div>
-<div class="card-sub">Frequência dos tipos de recomendação no período filtrado</div>
+<div class="card-sub">Tipos de recomendação e o status de cada uma</div>
+<div class="leg" id="leg-rec"></div>
 <div class="chart-wrap" style="height:200px"><canvas aria-label="Recomendacoes" id="cRec" role="img"></canvas></div>
 </div>
 </div>
@@ -486,8 +498,9 @@ body.printing{width:277mm;margin:0}
 <div class="cg2 sec-anim">
 <div class="card">
 <div class="card-ttl">Top 10 TAGs por Ocorrências</div>
-<div class="card-sub">Equipamentos com maior volume de recomendações no período filtrado</div>
+<div class="card-sub">Equipamentos com mais recomendações e a situação de cada um no período filtrado</div>
 <div class="tag-rank" id="tag-rank"></div>
+<div class="leg" id="tag-leg" style="margin:12px 0 0"></div>
 </div>
 <div class="card">
 <div class="card-ttl">Mapa de Calor — Setor × Prioridade</div>
@@ -511,7 +524,7 @@ body.printing{width:277mm;margin:0}
 </div>
 <div class="sh-sep"></div>
 </div>
-<div class="card" style="padding:0;overflow:hidden">
+<div class="card tbl-card" style="padding:0;overflow:hidden">
 <div class="tbl-wrap">
 <table>
 <thead><tr>
@@ -571,6 +584,11 @@ const R="#AD2E2E",RB="#FAE8E8";
 const P="#4E4480",PB="#EBE8F6";
 const O="#4F6835",OB="#ECF2E2";
 const T="#256A62",TB="#E2F3F1";
+// ── STATUS (cores e ordem únicas para gráficos, ranking e tabela)
+const ST_ORDER=['Realizado','Pendente','Nota aberta','Em Andamento'];
+const stColor=k=>k==='Realizado'?G:k==='Pendente'?A:k==='Nota aberta'?P:k==='Em Andamento'?BL:'#9E9487';
+const stCls=k=>({Realizado:'sr',Pendente:'sp','Nota aberta':'sn','Em Andamento':'sa'})[k]||'sx';
+const stSort=(a,b)=>{const ia=ST_ORDER.indexOf(a),ib=ST_ORDER.indexOf(b);return(ia<0?99:ia)-(ib<0?99:ib)};
 const BR="#6E3E1C",BRB="#F5E8DC";
 const BL="#284F82",BLB="#E3EBF6";
 const GR="#6B6358",GRB="#EDEBE6";
@@ -747,8 +765,8 @@ function rCharts(){
   // Status donut
   const sc={Realizado:0,Pendente:0,'Nota aberta':0};d.forEach(r=>sc[r.status]=(sc[r.status]||0)+1);
   dc('cSt');
-  document.getElementById('leg-st').innerHTML=Object.entries(sc).map(([k,v])=>{const c=k==='Realizado'?G:k==='Pendente'?A:P;return`<span class="li"><span class="ld" style="background:${c}"></span>${k} <b style="color:var(--txt);margin-left:2px">${v}</b></span>`}).join('');
-  CH['cSt']=new Chart(document.getElementById('cSt'),{type:'doughnut',data:{labels:Object.keys(sc),datasets:[{data:Object.values(sc),backgroundColor:[G,A,P],borderWidth:0,hoverOffset:7}]},options:{responsive:true,maintainAspectRatio:false,cutout:'73%',plugins:{legend:{display:false}}}});
+  document.getElementById('leg-st').innerHTML=Object.entries(sc).map(([k,v])=>{const c=stColor(k);return`<span class="li"><span class="ld" style="background:${c}"></span>${k} <b style="color:var(--txt);margin-left:2px">${v}</b></span>`}).join('');
+  CH['cSt']=new Chart(document.getElementById('cSt'),{type:'doughnut',data:{labels:Object.keys(sc),datasets:[{data:Object.values(sc),backgroundColor:Object.keys(sc).map(stColor),borderWidth:0,hoverOffset:7}]},options:{responsive:true,maintainAspectRatio:false,cutout:'73%',plugins:{legend:{display:false}}}});
   // Setor
   const sg={};d.forEach(r=>{if(!sg[r.setor])sg[r.setor]={t:0,a:0};sg[r.setor].t++;if(r.prio==='Alta')sg[r.setor].a++});
   const sl=Object.keys(sg).sort((a,b)=>sg[b].t-sg[a].t);
@@ -768,8 +786,13 @@ function rCharts(){
   document.getElementById('leg-prio').innerHTML=`<span class="li"><span class="ld" style="background:${R}"></span>Alta <b style="color:var(--txt);margin-left:2px">${pc['Alta']||0}</b></span><span class="li"><span class="ld" style="background:${A}"></span>M\u00e9dia <b style="color:var(--txt);margin-left:2px">${pc['M\u00e9dia']||0}</b></span><span class="li"><span class="ld" style="background:${O}"></span>Baixa <b style="color:var(--txt);margin-left:2px">${pc['Baixa']||0}</b></span>`;
   CH['cPrio']=new Chart(document.getElementById('cPrio'),{type:'doughnut',data:{labels:['Alta','M\u00e9dia','Baixa'],datasets:[{data:[pc['Alta']||0,pc['M\u00e9dia']||0,pc['Baixa']||0],backgroundColor:[R,A,O],borderWidth:0,hoverOffset:7}]},options:{responsive:true,maintainAspectRatio:false,cutout:'73%',plugins:{legend:{display:false}}}});
   // Recomendacoes
+  // Ações recomendadas, com o status de cada recomendação (barras empilhadas)
   dc('cRec');const RECD=recCounts(d);const ro=bO('x');ro.scales.x.ticks.maxRotation=38;ro.scales.x.ticks.autoSkip=false;ro.scales.x.ticks.font={size:10,family:'Inter'};
-  CH['cRec']=new Chart(document.getElementById('cRec'),{type:'bar',data:{labels:RECD.map(x=>x[0]),datasets:[{label:'Ocorrências',data:RECD.map(x=>x[1]),backgroundColor:O+'CC',borderRadius:4,borderSkipped:false}]},options:ro});
+  ro.scales.x.stacked=ro.scales.y.stacked=true;
+  const rst=[...new Set(d.map(r=>r.status))].sort(stSort);
+  const rcnt=(k,s)=>d.filter(r=>String(r.rec||'').trim()===k&&r.status===s).length;
+  document.getElementById('leg-rec').innerHTML=rst.map(s=>`<span class="li"><span class="ld" style="background:${stColor(s)}"></span>${s} <b style="color:var(--txt);margin-left:2px">${d.filter(r=>r.status===s).length}</b></span>`).join('');
+  CH['cRec']=new Chart(document.getElementById('cRec'),{type:'bar',data:{labels:RECD.map(x=>x[0]),datasets:rst.map(s=>({label:s,data:RECD.map(x=>rcnt(x[0],s)),backgroundColor:stColor(s)+'DD',borderRadius:3,borderSkipped:false}))},options:ro});
   
 }
 
@@ -842,7 +865,7 @@ function rTable(){
       <td><span style="font-size:12px;color:var(--txt2);max-width:220px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden" title="${(r.anomalia||'').replace(/"/g,'&quot;')}">${r.anomalia||'--'}</span></td>
       <td><span style="font-size:12px;color:var(--txt2)">${r.rec||'--'}</span></td>
       <td><span class="pill ${pm[r.prio]||''}">${r.prio}</span></td>
-      <td><span class="pill ${sm[r.status]||''}">${r.status}</span></td>
+      <td><span class="pill ${stCls(r.status)}">${r.status}</span></td>
       <td><div style="display:flex;align-items:center;gap:8px;min-width:80px">
         <div class="tbl-prog" style="flex:1"><div class="tbl-prog-fill" style="width:${tpct}%;background:${r.prio==='Alta'?R:r.prio==='M\u00e9dia'?A:O}"></div></div>
         <span style="font-size:11px;color:var(--txt3);min-width:24px;text-align:right">${(r.tempo!==null&&r.tempo!==undefined&&!isNaN(Number(r.tempo)))?Number(r.tempo)+'d':'--'}</span>
@@ -864,7 +887,7 @@ function openRow(i){
     <div class="dr"><span class="dk">Anomalia</span><span class="dv" style="font-size:12px">${r.anomalia||'--'}</span></div>
     <div class="dr"><span class="dk">Recomendação</span><span class="dv">${r.rec||'--'}</span></div>
     <div class="dr"><span class="dk">Prioridade</span><span class="dv"><span class="pill ${pm[r.prio]||''}">${r.prio}</span></span></div>
-    <div class="dr"><span class="dk">Status</span><span class="dv"><span class="pill ${sm[r.status]||''}">${r.status}</span></span></div>
+    <div class="dr"><span class="dk">Status</span><span class="dv"><span class="pill ${stCls(r.status)}">${r.status}</span></span></div>
     <div class="dr"><span class="dk">Tempo de implementação</span><span class="dv">${(r.tempo!==null&&r.tempo!==undefined&&!isNaN(Number(r.tempo)))?Number(r.tempo)+' dias':'Não registrado'}</span></div>`;
   document.getElementById('dov').classList.add('open');
 }
@@ -1018,21 +1041,30 @@ window.addEventListener('DOMContentLoaded',carregarDadosAutomaticamenteRRP);
 function rTagRank(){
   const d=filt,tg={};
   d.forEach(r=>{
-    if(!tg[r.tag])tg[r.tag]={c:0,s:r.setor};
+    if(!tg[r.tag])tg[r.tag]={c:0,s:r.setor,st:{}};
     tg[r.tag].c++;
+    tg[r.tag].st[r.status]=(tg[r.tag].st[r.status]||0)+1;
   });
   const sorted=Object.entries(tg).sort((a,b)=>b[1].c-a[1].c).slice(0,10);
   const mx=sorted[0]?sorted[0][1].c:1;
   const el=document.getElementById('tag-rank');
   if(!el)return;
-  el.innerHTML=sorted.map(([tag,v],i)=>`
+  // Barra empilhada por status + selo com a situação do equipamento
+  el.innerHTML=sorted.map(([tag,v],i)=>{
+    const seg=Object.keys(v.st).sort(stSort).map(k=>`<span title="${k}: ${v.st[k]}" style="width:${v.st[k]/v.c*100}%;background:${stColor(k)}"></span>`).join('');
+    const open=v.c-(v.st['Realizado']||0);
+    const badge=open===0?'<span class="pill sr">Em dia</span>':`<span class="pill sp">${open} em aberto</span>`;
+    return`
     <div class="tag-row">
       <span class="trn ${i<3?'top':''}">${i+1}</span>
       <span class="tt">${tag}</span>
       <span class="ts">${v.s}</span>
-      <div class="tb2"><div class="tb2-bg"><div class="tb2-fill" style="width:${Math.round(v.c/mx*100)}%"></div></div></div>
+      <div class="tb2"><div class="tb2-bg"><div class="tb2-fill stk" style="width:${Math.round(v.c/mx*100)}%">${seg}</div></div></div>
       <span class="tc">${v.c}</span>
-    </div>`).join('');
+      <span class="tst">${badge}</span>
+    </div>`}).join('');
+  const lg=document.getElementById('tag-leg');
+  if(lg){const sts=[...new Set(d.map(r=>r.status))].sort(stSort);lg.innerHTML=sts.map(s=>`<span class="li"><span class="ld" style="background:${stColor(s)}"></span>${s}</span>`).join('')}
 }
 
 // ── HEATMAP ───────────────────────────────────────────────────────────────────
