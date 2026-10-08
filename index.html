@@ -200,7 +200,7 @@ tbody tr:last-child td{border-bottom:none}
 .sn{background:var(--purple-bg);color:var(--purple)}.sn::before{background:var(--purple)}
 .sa{background:var(--blue-bg);color:var(--blue)}.sa::before{background:var(--blue)}
 .sx{background:var(--bg2);color:var(--txt2)}.sx::before{background:var(--txt3)}
-.tst{flex:0 0 auto;min-width:84px;display:flex;justify-content:flex-end}
+.tst{flex:0 0 98px;display:flex;justify-content:flex-end}
 .tb2-fill.stk{display:flex;background:none}
 .tb2-fill.stk span{display:block;height:100%}
 .tbl-prog{height:3px;background:var(--bg2);border-radius:2px;overflow:hidden;min-width:50px}
@@ -290,11 +290,15 @@ body.printing{width:277mm;margin:0}
   .chart-wrap{min-width:0;max-width:100%;overflow:hidden}
   #ws,#wt{height:420px!important}
   .card,.kpi,.ins{break-inside:avoid;page-break-inside:avoid;box-shadow:none}
-  .sh{break-after:avoid;page-break-after:avoid}
+  .sh{break-after:avoid;page-break-after:avoid;padding-top:2px;margin-bottom:10px}
+  .cg2,.cg3{margin-bottom:12px}
   /* insights fluem de uma página para a outra, sem empurrar a seção inteira para a folha seguinte */
-  .ifeed{display:block;margin-bottom:12px}
-  .ins{margin-bottom:8px;padding:10px 14px}
+  .ifeed{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+  .ifeed .ins:last-child:nth-child(odd){grid-column:1/-1}
+  .ins{margin-bottom:0;padding:8px 12px;gap:10px}
+  .ins-ico{width:28px;height:28px;font-size:14px}
   .ins-foot{margin-top:5px}
+  .tag-row{padding:4px 0}
   /* o card da tabela é maior que uma folha: precisa poder quebrar, senão a listagem começa sempre numa folha nova */
   .card.tbl-card{break-inside:auto;page-break-inside:auto}
   /* tabela completa, sem corte lateral nem texto truncado */
