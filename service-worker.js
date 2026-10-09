@@ -22,7 +22,7 @@ self.addEventListener("fetch",event=>{
  const req=event.request;
  if(req.method!=="GET") return;
  const url=new URL(req.url);
- const dynamic=/\.(json|csv|xlsx)$/i.test(url.pathname)||req.mode==="navigate"||url.pathname.endsWith("/index.html")||url.pathname==="/";
+ const dynamic=/\.(json|csv|xlsx)$/i.test(url.pathname)||/output=csv/.test(url.search)||url.hostname==='raw.githubusercontent.com'||req.mode==="navigate"||url.pathname.endsWith("/index.html")||url.pathname==="/";
  if(dynamic){
    event.respondWith(fetch(req,{cache:"no-store"}).catch(()=>caches.match(req)));
    return;

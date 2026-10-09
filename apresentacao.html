@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apresentação — Relatório Q3 PP4 PE7</title>
+<link rel="icon" type="image/png" href="favicon-32x32.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Inter:wght@300;400;500;600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!--
+  ============================================================
+  APRESENTAÇÃO — Relatório Q3 PP4 PE7 · Análise de RRPs
+  Página independente: NÃO altera o index.html. Ela só LÊ a mesma
+  planilha do Google Sheets (reserva: .xlsx do GitHub e dados embutidos
+  no index.html), então cada vez que é aberta mostra os números do dia.
+
+  Atalhos:  ← →  / Espaço / PageUp PageDown  navegar
+            F  tela cheia      R  recarregar dados      P  exportar PDF
+  URL:      apresentacao.html?auto=20   passa os slides sozinho (20 s cada, ideal para TV)
+  ============================================================
+-->
+<style>
+  :root {
+    --bg:#F4F1EC; --surface:#FFFFFF; --border:#E0DBD2;
+    --txt:#18150F; --txt2:#635C50; --txt3:#9E9487;
+    --accent:#B5622A; --brown:#6E3E1C;
+    --green:#27714A; --amber:#A86E22; --red:#AD2E2E; --olive:#4F6835; --purple:#4E4480; --blue:#284F82;
+    --stage:#18150F;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { height:100%; }
+  body { background:var(--stage); font-family:'Inter',sans-serif; color:var(--txt); overflow:hidden; -webkit-font-smoothing:antialiased; }
+
+  /* Palco: slides de 1600x900 escalados para caber na tela */
+  #stage { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; }
+  #deck { position:relative; width:1600px; height:900px; transform-origin:center center; flex-shrink:0; }
+  .slide { position:absolute; inset:0; background:var(--bg); border-radius:6px; overflow:hidden; padding:56px 80px 64px;
+           display:flex; flex-direction:column; opacity:0; visibility:hidden; transition:opacity .35s ease; }
+  .slide.active { opacity:1; visibility:visible; }
+
+  .slide-head { display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:26px; }
+  .kicker { font-size:17px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin-bottom:6px; }
+  h1, h2, h3 { font-family:'Syne',sans-serif; font-weight:800; color:var(--brown); line-height:1.1; }
+  h2 { font-size:48px; }
+  .slide-foot { position:absolute; left:80px; right:80px; bottom:22px; display:flex; justify-content:space-between; font-size:15px; color:var(--txt3); }
+  .body { flex:1; min-height:0; display:flex; gap:28px; }
+  .col { flex:1; min-width:0; display:flex; flex-direction:column; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:24px 30px; box-shadow:0 4px 24px rgba(110,62,28,.06); }
+  .card h3 { font-size:24px; margin-bottom:4px; }
+  .card .sub { font-size:16px; color:var(--txt3); margin-bottom:14px; }
+  .chart-box { position:relative; flex:1; min-height:0; }
+
+  /* Capa */
+  .cover { background:linear-gradient(135deg,#18150F 0%,#3A2210 55%,#6E3E1C 100%); justify-content:center; }
+  .cover .kicker { color:#E8A84A; font-size:22px; }
+  .cover h1 { color:#fff; font-size:112px; margin:14px 0 10px; }
+  .cover .sub { font-size:40px; color:#F1E3CF; font-weight:300; font-family:'Syne',sans-serif; }
+  .cover .meta { margin-top:70px; display:flex; gap:64px; font-size:20px; color:#D9C6AE; }
+  .cover .meta b { display:block; font-size:34px; color:#fff; font-weight:700; margin-top:6px; font-family:'Syne',sans-serif; }
+
+  /* Resumo */
+  .headline { font-size:32px; line-height:1.38; max-width:1380px; margin-bottom:26px; }
+  .headline b { color:var(--brown); }
+  .kpis { display:grid; grid-template-columns:repeat(3,1fr); gap:22px; flex:1; min-height:0; }
+  .kpi { display:flex; flex-direction:column; justify-content:center; border-top:6px solid var(--accent); }
+  .kpi .lbl { font-size:19px; color:var(--txt2); font-weight:500; }
+  .kpi .val { font-family:'Syne',sans-serif; font-size:78px; font-weight:800; line-height:1; margin-top:10px; font-variant-numeric:tabular-nums; }
+  .kpi .val small { font-size:30px; font-weight:600; color:var(--txt3); }
+  .kpi .note { font-size:17px; color:var(--txt3); margin-top:8px; }
+
+  .pill { display:inline-flex; align-items:center; gap:8px; padding:5px 14px; border-radius:999px; font-size:16px; font-weight:600; color:#fff; white-space:nowrap; }
+  .dot { width:13px; height:13px; border-radius:50%; display:inline-block; flex-shrink:0; }
+  .legend { display:flex; gap:20px; font-size:17px; color:var(--txt2); flex-wrap:wrap; justify-content:flex-end; }
+  .legend span { display:inline-flex; align-items:center; gap:8px; }
+  .legend b { color:var(--txt); }
+
+  /* Fatos laterais */
+  .facts { width:400px; flex-shrink:0; display:flex; flex-direction:column; gap:20px; }
+  .fact { border-left:7px solid var(--accent); }
+  .fact .lbl { font-size:17px; color:var(--txt2); }
+  .fact .val { font-family:'Syne',sans-serif; font-size:46px; font-weight:800; margin-top:6px; }
+  .fact .note { font-size:16px; color:var(--txt3); margin-top:4px; }
+
+  /* Prioridade */
+  .prio-list { margin-top:10px; }
+  .prio-row { display:flex; align-items:center; gap:14px; font-size:22px; padding:9px 0; border-bottom:1px solid var(--border); }
+  .prio-row:last-child { border-bottom:none; }
+  .prio-row .n { margin-left:auto; font-family:'Syne',sans-serif; font-weight:800; font-size:28px; }
+  .prio-row .p { width:70px; text-align:right; color:var(--txt3); font-size:18px; }
+
+  /* Equipamentos */
+  .rank-row { display:grid; grid-template-columns:36px 190px 1fr 56px 170px; align-items:center; gap:16px; padding:9px 0; border-bottom:1px solid var(--border); }
+  .rank-row:last-child { border-bottom:none; }
+  .rank-row .pos { font-family:'Syne',sans-serif; font-weight:800; font-size:20px; color:var(--txt3); text-align:right; }
+  .rank-row .pos.top { color:var(--accent); }
+  .rank-row .tg { font-weight:700; font-size:22px; line-height:1.15; }
+  .rank-row .tg small { display:block; font-weight:500; font-size:14px; color:var(--txt3); letter-spacing:.04em; }
+  .stack { height:22px; background:#EFE8DE; border-radius:11px; overflow:hidden; display:flex; }
+  .stack span { display:block; height:100%; }
+  .rank-row .c { font-family:'Syne',sans-serif; font-weight:800; font-size:26px; text-align:right; }
+  .rank-row .pill { justify-self:start; }
+  .heat { display:grid; gap:8px; margin-top:6px; }
+  .heat .h { font-size:15px; font-weight:600; color:var(--txt3); text-align:center; text-transform:uppercase; letter-spacing:.06em; align-self:end; }
+  .heat .r { font-size:17px; font-weight:600; color:var(--txt2); align-self:center; }
+  .heat .cell { height:74px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-family:'Syne',sans-serif; font-weight:800; font-size:30px; }
+
+  /* Tabelas */
+  table { border-collapse:collapse; width:100%; }
+  th { text-align:left; font-size:14px; font-weight:700; color:var(--txt3); text-transform:uppercase; letter-spacing:.06em; padding:10px 12px; border-bottom:2px solid var(--border); }
+  td { padding:11px 12px; font-size:19px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  td:nth-child(1), td:nth-child(3) { white-space:nowrap; }
+  td.an { font-size:17px; color:var(--txt2); line-height:1.3; }
+  td.an div { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .empty { margin:auto; text-align:center; font-family:'Syne',sans-serif; font-size:40px; color:var(--green); font-weight:700; }
+  .empty small { display:block; font-family:'Inter',sans-serif; font-size:22px; font-weight:400; color:var(--txt3); margin-top:10px; }
+
+  /* Insights */
+  .ins-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:20px; align-content:start; width:100%; }
+  .ins { border-left:8px solid var(--txt3); padding:20px 26px; }
+  .ins h3 { font-size:24px; display:flex; justify-content:space-between; align-items:center; gap:12px; }
+  .ins p { font-size:19px; line-height:1.45; color:var(--txt2); margin-top:10px; }
+  .ins.wide { grid-column:1/-1; }
+
+  /* Controles */
+  #controls { position:fixed; left:50%; bottom:14px; transform:translateX(-50%); z-index:10; display:flex; align-items:center; gap:6px;
+              padding:8px 10px; border-radius:14px; background:rgba(24,21,15,.9); color:#F1E3CF; font-size:14px; backdrop-filter:blur(6px);
+              transition:opacity .3s; box-shadow:0 6px 24px rgba(0,0,0,.35); }
+  #controls.hidden { opacity:0; pointer-events:none; }
+  #controls button { background:transparent; color:inherit; border:1px solid rgba(241,227,207,.25); border-radius:9px; padding:8px 12px; font:inherit; cursor:pointer; white-space:nowrap; }
+  #controls button:hover { background:rgba(241,227,207,.12); }
+  #controls a { color:inherit; text-decoration:none; }
+  #counter { min-width:64px; text-align:center; font-variant-numeric:tabular-nums; }
+  #sync { font-size:13px; color:#B59A7C; padding:0 6px; white-space:nowrap; }
+  #progress { position:fixed; left:0; top:0; height:4px; background:var(--accent); transition:width .3s; z-index:10; }
+  #loading { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:0 24px; color:#F1E3CF; font-size:20px; z-index:20; background:var(--stage); }
+  @media (max-width:720px) { #controls { gap:4px; padding:6px; font-size:12px; bottom:8px; } #controls button { padding:6px 8px; } #sync, .hide-sm { display:none; } }
+
+  /* Impressão / PDF: 1 slide por página */
+  @page { size:1600px 900px; margin:0; }
+  @media print {
+    html, body { height:auto; overflow:visible; background:#fff; }
+    #controls, #progress, #loading { display:none !important; }
+    #stage { position:static; display:block; }
+    #deck { transform:none !important; width:1600px; height:auto; }
+    .slide { position:relative; opacity:1; visibility:visible; width:1600px; height:900px; border-radius:0; page-break-after:always; break-after:page; transition:none; }
+    * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  }
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div id="loading">Carregando dados da planilha…</div>
+<div id="stage"><div id="deck"></div></div>
+
+<div id="controls">
+  <button onclick="go(-1)" title="Anterior (←)">◀</button>
+  <span id="counter">1 / 1</span>
+  <button onclick="go(1)" title="Próximo (→)">▶</button>
+  <button onclick="loadData(true)" title="Recarregar dados (R)">⟳</button>
+  <button class="hide-sm" onclick="toggleFS()" title="Tela cheia (F)">⛶</button>
+  <button class="hide-sm" onclick="window.print()" title="Exportar PDF (P)">PDF</button>
+  <a href="index.html"><button class="hide-sm" title="Voltar ao dashboard">Dashboard</button></a>
+  <span id="sync"></span>
+</div>
+
+<script>
+// ============================================================
+// FONTES DE DADOS (as mesmas do dashboard)
+// ============================================================
+const SHEETS_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRR_wCPiWXn43YLde978m4oISTN63zPN0uaibIEafkHonKbLeOKLmsURnlosTtxyBKHENEzGnB__B8l/pub?gid=1184133260&single=true&output=csv';
+const GITHUB_XLSX_URL = 'https://raw.githubusercontent.com/vieiranixon/Dashboard-RRPs-Q3/main/dados/dados_rrp.xlsx';
+const AUTO_REFRESH_MS = 5 * 60 * 1000;                    // recarrega a planilha a cada 5 min
+const AUTO_ADVANCE_S = Math.max(0, parseInt(new URLSearchParams(location.search).get('auto')) || 0);
+
+// Cores (as mesmas do dashboard)
+const C = { green:'#27714A', amber:'#A86E22', red:'#AD2E2E', olive:'#4F6835', purple:'#4E4480', blue:'#284F82', teal:'#256A62', accent:'#B5622A', grey:'#9E9487' };
+const ST_ORDER = ['Realizado', 'Pendente', 'Nota aberta', 'Em Andamento'];
+const stColor = k => k === 'Realizado' ? C.green : k === 'Pendente' ? C.amber : k === 'Nota aberta' ? C.purple : k === 'Em Andamento' ? C.blue : C.grey;
+const stSort = (a, b) => { const ia = ST_ORDER.indexOf(a), ib = ST_ORDER.indexOf(b); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib); };
+const PRIOS = ['Alta', 'Média', 'Baixa'];
+const prColor = p => p === 'Alta' ? C.red : p === 'Média' ? C.amber : C.olive;
+
+// ============================================================
+// LEITURA E NORMALIZAÇÃO (mesma lógica do index.html)
+// ============================================================
+const nrmTxt = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+function normMes(v) {
+  if (v === null || v === undefined || v === '') return 'N/A';
+  if (typeof v === 'number') return new Date((v - 25569) * 86400000).toISOString().substring(0, 7);
+  const s = String(v).trim();
+  const mBar = s.match(/^(\d{1,2})\/(\d{2,4})$/);
+  if (mBar) { let yy = mBar[2]; if (yy.length === 2) yy = '20' + yy; return yy + '-' + mBar[1].padStart(2, '0'); }
+  const mIso = s.match(/^(\d{4})-(\d{1,2})/);
+  if (mIso) return mIso[1] + '-' + mIso[2].padStart(2, '0');
+  return s.substring(0, 7) || 'N/A';
+}
+const fmtMes = m => { if (!m || m === 'N/A') return m || '--'; const p = String(m).split('-'); return p.length < 2 ? m : p[1] + '/' + p[0].slice(-2); };
+
+function parseCSVText(text) {
+  const rows = []; let row = [], field = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) { if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else inQ = false; } else field += c; }
+    else if (c === '"') inQ = true;
+    else if (c === ',') { row.push(field); field = ''; }
+    else if (c === '\r') { /* ignora */ }
+    else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+    else field += c;
+  }
+  if (field.length || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+function csvToObjects(text) {
+  const rows = parseCSVText(text).filter(r => r.length && r.some(c => c !== ''));
+  if (!rows.length) return [];
+  const headers = rows[0].map(h => h.trim());
+  return rows.slice(1).map(r => { const o = {}; headers.forEach((h, i) => { o[h] = r[i] !== undefined ? r[i].trim() : ''; }); return o; });
+}
+const numOrNull = v => (v === null || v === undefined || v === '' || isNaN(parseFloat(v))) ? null : parseFloat(v);
+
+function canonSetor(arr) {
+  const groups = {};
+  arr.forEach(d => { const k = nrmTxt(d.setor); groups[k] = groups[k] || {}; groups[k][d.setor] = (groups[k][d.setor] || 0) + 1; });
+  const canon = {};
+  Object.keys(groups).forEach(k => {
+    let best = null, bc = -1;
+    Object.keys(groups[k]).forEach(v => { if (groups[k][v] > bc) { best = v; bc = groups[k][v]; } });
+    canon[k] = best;
+  });
+  arr.forEach(d => { d.setor = canon[nrmTxt(d.setor)]; });
+  return arr;
+}
+// linhas-objeto (CSV/xlsx) → registros
+function toRecords(rows) {
+  const ks = [...new Set(rows.flatMap(r => Object.keys(r)))];
+  const fc = (...ns) => ks.find(k => ns.some(n => nrmTxt(k).includes(nrmTxt(n))));
+  const uC = fc('unidade'), sC = fc('setor'), tC = fc('tag'), mC = fc('mes', 'month'), pC = fc('prioridade'), stC = fc('status'),
+        tmC = fc('tempo', 'dias'), rC = fc('recomendacao'), anC = fc('anomalia');
+  return canonSetor(rows.map(r => ({
+    unidade: r[uC] || 'N/A', setor: r[sC] || 'N/A', tag: r[tC] || 'N/A', mes: normMes(r[mC]),
+    prio: r[pC] || 'Média', status: r[stC] || 'Pendente', tempo: numOrNull(r[tmC]), rec: r[rC] || '', anomalia: r[anC] || ''
+  })));
+}
+// dados embutidos no index.html: [unidade, setor, tag, mes, prio, status, tempo, rec, anomalia]
+function fromRawArrays(raw) {
+  return canonSetor(raw.map(r => ({ unidade: r[0], setor: r[1], tag: r[2], mes: r[3], prio: r[4], status: r[5],
+    tempo: numOrNull(r[6]), rec: r[7] || '', anomalia: r[8] || '' })));
+}
+
+// ============================================================
+// CARREGAMENTO: Google Sheets → GitHub .xlsx → dados embutidos no index.html
+// ============================================================
+let DATA = null, SOURCE = '', LOADED_AT = null, SIG = '';
+
+async function fromGoogle() {
+  const r = await fetch(SHEETS_CSV_URL + '&t=' + Date.now(), { cache: 'no-store' });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return toRecords(csvToObjects(await r.text()));
+}
+async function fromGitHub() {
+  const r = await fetch(GITHUB_XLSX_URL + '?t=' + Date.now(), { cache: 'no-store' });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const wb = XLSX.read(await r.arrayBuffer(), { type: 'array' });
+  return toRecords(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]));
+}
+async function fromEmbedded() {
+  const html = await (await fetch('index.html?t=' + Date.now(), { cache: 'no-store' })).text();
+  const m = html.match(/const RAW=(\[.*?\]);\s*\n/s);
+  if (!m) throw new Error('RAW não encontrado');
+  return fromRawArrays(JSON.parse(m[1]));
+}
+async function loadData(manual) {
+  const sources = [['Google Sheets', fromGoogle], ['GitHub (.xlsx)', fromGitHub], ['dados embutidos no dashboard', fromEmbedded]];
+  setSync('⟳ buscando planilha…');
+  for (const [name, fn] of sources) {
+    try {
+      const d = await fn();
+      if (d && d.length) {
+        const sig = JSON.stringify(d);
+        const changed = sig !== SIG || name !== SOURCE;
+        DATA = d; SOURCE = name; LOADED_AT = new Date(); SIG = sig;
+        if (changed || manual) build(); else syncLabel();
+        return;
+      }
+    } catch (e) { console.warn('Fonte falhou:', name, e); }
+  }
+  setSync('⚠ não foi possível carregar dados');
+  if (!DATA) document.getElementById('loading').textContent = 'Não foi possível carregar a planilha. Verifique a conexão e pressione R.';
+}
+function syncLabel() { setSync('✓ ' + SOURCE + ' · ' + LOADED_AT.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })); }
+
+// ============================================================
+// INDICADORES
+// ============================================================
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
+const avg = a => a.length ? +(a.reduce((x, y) => x + y, 0) / a.length).toFixed(1) : null;
+const fmtD = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+
+function stats(d) {
+  const n = d.length, real = d.filter(x => x.status === 'Realizado').length, pend = n - real;
+  const alta = d.filter(x => x.prio === 'Alta').length;
+  const tempos = d.filter(x => x.tempo !== null && x.tempo >= 0).map(x => x.tempo);
+  const months = [...new Set(d.map(x => x.mes))].filter(m => m && m !== 'N/A').sort();
+  const sg = {};
+  d.forEach(r => { const s = sg[r.setor] = sg[r.setor] || { t: 0, a: 0, tm: [], pr: { Alta: 0, 'Média': 0, Baixa: 0 } }; s.t++; if (r.prio === 'Alta') s.a++; if (r.tempo !== null && r.tempo >= 0) s.tm.push(r.tempo); s.pr[r.prio] = (s.pr[r.prio] || 0) + 1; });
+  const setores = Object.keys(sg).sort((a, b) => sg[b].t - sg[a].t);
+  const tags = {};
+  d.forEach(r => { const t = tags[r.tag] = tags[r.tag] || { c: 0, s: r.setor, st: {} }; t.c++; t.st[r.status] = (t.st[r.status] || 0) + 1; });
+  const recs = {};
+  d.forEach(r => { const k = String(r.rec || '').trim(); if (k) recs[k] = recs[k] || { c: 0, st: {} }, recs[k].c++, recs[k].st[r.status] = (recs[k].st[r.status] || 0) + 1; });
+  const statuses = [...new Set(d.map(x => x.status))].sort(stSort);
+  return { n, real, pend, rPct: pct(real, n), alta, aPct: pct(alta, n), tAvg: avg(tempos), tN: tempos.length, months, sg, setores,
+           tags, tagList: Object.entries(tags).sort((a, b) => b[1].c - a[1].c), recs, recList: Object.entries(recs).sort((a, b) => b[1].c - a[1].c), statuses };
+}
+
+// ============================================================
+// SLIDES
+// ============================================================
+let CHART_JOBS = [], CHARTS = [], IDX = 0, AUTO_T = null;
+const head = (kicker, title, right) => `<div class="slide-head"><div><div class="kicker">${kicker}</div><h2>${title}</h2></div>${right || ''}</div>`;
+const foot = (i, n) => `<div class="slide-foot"><span>Relatório Q3 PP4 PE7 · Análise de RRPs</span><span>${i} / ${n}</span></div>`;
+const legendSt = (S, d) => `<div class="legend">${S.statuses.map(s => `<span><i class="dot" style="background:${stColor(s)}"></i>${esc(s)} <b>${d.filter(x => x.status === s).length}</b></span>`).join('')}</div>`;
+const tint = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
+
+function sCover(d, S) {
+  const per = S.months.length ? `${fmtMes(S.months[0])} – ${fmtMes(S.months[S.months.length - 1])}` : '—';
+  return `<section class="slide cover">
+    <div class="kicker">Braskem · Rotina de Recomendações de Processo</div>
+    <h1>Relatório Q3 PP4 PE7</h1><div class="sub">Análise de RRPs</div>
+    <div class="meta"><div>Total de RRPs<b>${S.n}</b></div><div>Implementação<b>${S.rPct}%</b></div><div>Período<b>${per}</b></div><div>Atualizado em<b>${fmtD.format(LOADED_AT)}</b></div></div>
+  </section>`;
+}
+function sSummary(d, S) {
+  const topS = S.setores[0];
+  const k = (lbl, val, note, col) => `<div class="card kpi" style="border-top-color:${col}"><div class="lbl">${lbl}</div><div class="val">${val}</div><div class="note">${note}</div></div>`;
+  const headline = `<b>${S.rPct}%</b> das <b>${S.n}</b> RRPs foram realizadas e <b>${S.pend}</b> seguem em aberto. `
+    + `<b>${S.aPct}%</b> são de prioridade alta${topS ? `, com maior volume em <b>${esc(topS)}</b> (${S.sg[topS].t})` : ''}.`;
+  return `<section class="slide">${head('Visão geral', 'Resumo executivo')}
+    <div class="headline">${headline}</div>
+    <div class="kpis">
+      ${k('Total de RRPs', S.n, `${S.months.length} meses de registros`, C.accent)}
+      ${k('Realizadas', S.real + ` <small>${S.rPct}%</small>`, 'taxa de implementação', C.green)}
+      ${k('Em aberto', S.pend + ` <small>${pct(S.pend, S.n)}%</small>`, 'pendentes, em andamento ou nota aberta', S.pend > 5 ? C.red : C.amber)}
+      ${k('Prioridade alta', S.alta + ` <small>${S.aPct}%</small>`, 'das RRPs registradas', C.red)}
+      ${k('Tempo médio', S.tAvg !== null ? S.tAvg + ' <small>dias</small>' : '—', `baseado em ${S.tN} RRPs com prazo registrado`, C.purple)}
+      ${k('Equipamentos', Object.keys(S.tags).length, `em ${S.setores.length} setores`, C.blue)}
+    </div></section>`;
+}
+function sTimeline(d, S) {
+  const byM = {}; S.months.forEach(m => byM[m] = {}); d.forEach(r => { if (byM[r.mes]) byM[r.mes][r.status] = (byM[r.mes][r.status] || 0) + 1; });
+  const tot = S.months.map(m => Object.values(byM[m]).reduce((a, b) => a + b, 0));
+  const peak = tot.length ? Math.max(...tot) : 0, pk = S.months[tot.indexOf(peak)];
+  const last = S.months[S.months.length - 1], lastN = last ? tot[tot.length - 1] : 0, lastOpen = last ? lastN - (byM[last]['Realizado'] || 0) : 0;
+  CHART_JOBS.push(() => new Chart(document.getElementById('c-tl'), { type: 'bar',
+    data: { labels: S.months.map(fmtMes), datasets: S.statuses.map(s => ({ label: s, data: S.months.map(m => byM[m][s] || 0), backgroundColor: stColor(s), borderRadius: 3 })) },
+    options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } },
+      scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(0,0,0,.05)' } } } } }));
+  return `<section class="slide">${head('Evolução', 'Volume de RRPs por mês', legendSt(S, d))}
+    <div class="body"><div class="card col"><div class="chart-box"><canvas id="c-tl"></canvas></div></div>
+    <div class="facts">
+      <div class="card fact"><div class="lbl">Mês de maior volume</div><div class="val">${pk ? fmtMes(pk) : '—'}</div><div class="note">${peak} RRPs registradas</div></div>
+      <div class="card fact" style="border-left-color:${C.green}"><div class="lbl">Média mensal</div><div class="val">${S.months.length ? (S.n / S.months.length).toFixed(1).replace('.', ',') : '—'}</div><div class="note">RRPs por mês</div></div>
+      <div class="card fact" style="border-left-color:${lastOpen ? C.amber : C.green}"><div class="lbl">Último mês (${last ? fmtMes(last) : '—'})</div><div class="val">${lastN}</div><div class="note">${lastOpen ? lastOpen + ' ainda em aberto' : 'todas realizadas'}</div></div>
+    </div></div></section>`;
+}
+function sSetor(d, S) {
+  const tl = S.setores.map(s => [s, avg(S.sg[s].tm)]).filter(x => x[1] !== null).sort((a, b) => b[1] - a[1]);
+  const hOpts = (extra) => Object.assign({ indexAxis: 'y', responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } },
+    scales: { x: { beginAtZero: true, grid: { color: 'rgba(0,0,0,.05)' } }, y: { grid: { display: false }, ticks: { font: { size: 17 } } } } }, extra || {});
+  CHART_JOBS.push(() => new Chart(document.getElementById('c-set'), { type: 'bar', options: hOpts(),
+    data: { labels: S.setores, datasets: [{ label: 'Total', data: S.setores.map(s => S.sg[s].t), backgroundColor: C.amber + 'CC', borderRadius: 4 }, { label: 'Prioridade alta', data: S.setores.map(s => S.sg[s].a), backgroundColor: C.red + 'CC', borderRadius: 4 }] } }));
+  CHART_JOBS.push(() => new Chart(document.getElementById('c-tmp'), { type: 'bar', options: hOpts(),
+    data: { labels: tl.map(x => x[0]), datasets: [{ label: 'Dias', data: tl.map(x => x[1]), backgroundColor: C.purple + 'CC', borderRadius: 4 }] } }));
+  return `<section class="slide">${head('Setores', 'Análise por setor', `<div class="legend"><span><i class="dot" style="background:${C.amber}"></i>Total</span><span><i class="dot" style="background:${C.red}"></i>Prioridade alta</span></div>`)}
+    <div class="body"><div class="card col"><h3>RRPs por setor</h3><div class="sub">Total e prioridade alta por área de operação</div><div class="chart-box"><canvas id="c-set"></canvas></div></div>
+    <div class="card col"><h3>Tempo médio de implementação</h3><div class="sub">Dias entre identificação e conclusão, por setor</div><div class="chart-box"><canvas id="c-tmp"></canvas></div></div></div></section>`;
+}
+function sPrio(d, S) {
+  const pc = PRIOS.map(p => d.filter(x => x.prio === p).length);
+  const recs = S.recList;
+  CHART_JOBS.push(() => new Chart(document.getElementById('c-prio'), { type: 'doughnut',
+    data: { labels: PRIOS, datasets: [{ data: pc, backgroundColor: PRIOS.map(prColor), borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, animation: false, cutout: '66%', plugins: { legend: { display: false } } } }));
+  CHART_JOBS.push(() => new Chart(document.getElementById('c-rec'), { type: 'bar',
+    data: { labels: recs.map(r => r[0]), datasets: S.statuses.map(s => ({ label: s, data: recs.map(r => r[1].st[s] || 0), backgroundColor: stColor(s), borderRadius: 3 })) },
+    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } },
+      scales: { x: { stacked: true, beginAtZero: true, grid: { color: 'rgba(0,0,0,.05)' } }, y: { stacked: true, grid: { display: false }, ticks: { font: { size: 14 }, autoSkip: false } } } } }));
+  return `<section class="slide">${head('Prioridade e ações', 'Prioridade e ações recomendadas', legendSt(S, d))}
+    <div class="body"><div class="card" style="width:560px;flex-shrink:0;display:flex;flex-direction:column"><h3>Distribuição por prioridade</h3><div class="sub">Proporção de urgência das RRPs</div>
+      <div style="height:250px;position:relative"><canvas id="c-prio"></canvas></div>
+      <div class="prio-list">${PRIOS.map((p, i) => `<div class="prio-row"><i class="dot" style="background:${prColor(p)}"></i>${p}<span class="n">${pc[i]}</span><span class="p">${pct(pc[i], S.n)}%</span></div>`).join('')}</div></div>
+    <div class="card col"><h3>Ações recomendadas</h3><div class="sub">Tipos de recomendação e o status de cada uma</div><div class="chart-box"><canvas id="c-rec"></canvas></div></div></div></section>`;
+}
+function sEquip(d, S) {
+  const top = S.tagList.slice(0, 8), mx = top.length ? top[0][1].c : 1;
+  const rows = top.map(([tag, v], i) => {
+    const open = v.c - (v.st['Realizado'] || 0);
+    const seg = Object.keys(v.st).sort(stSort).map(k => `<span style="width:${v.st[k] / v.c * 100}%;background:${stColor(k)}"></span>`).join('');
+    const badge = open === 0 ? `<span class="pill" style="background:${C.green}">Em dia</span>` : `<span class="pill" style="background:${C.amber}">${open} em aberto</span>`;
+    return `<div class="rank-row"><span class="pos ${i < 3 ? 'top' : ''}">${i + 1}</span><span class="tg">${esc(tag)}<small>${esc(v.s)}</small></span>
+      <div class="stack" style="width:${v.c / mx * 100}%">${seg}</div><span class="c">${v.c}</span>${badge}</div>`;
+  }).join('');
+  const sets = S.setores.slice(0, 6), hmax = Math.max(1, ...sets.flatMap(s => PRIOS.map(p => S.sg[s].pr[p] || 0)));
+  const heat = `<div class="heat" style="grid-template-columns:150px repeat(3,1fr)"><div></div>${PRIOS.map(p => `<div class="h">${p}</div>`).join('')}
+    ${sets.map(s => `<div class="r">${esc(s)}</div>` + PRIOS.map(p => { const c = S.sg[s].pr[p] || 0; return `<div class="cell" style="background:${c ? tint(prColor(p), .12 + .78 * c / hmax) : '#F1EEE8'};color:${c / hmax > .55 ? '#fff' : 'var(--txt)'}">${c || ''}</div>`; }).join('')).join('')}</div>`;
+  return `<section class="slide">${head('Equipamentos', 'Equipamentos em destaque', legendSt(S, d))}
+    <div class="body"><div class="card col" style="flex:1.25"><h3>Top ${top.length} TAGs por ocorrências</h3><div class="sub">Barra por status e situação atual de cada equipamento</div>${rows}</div>
+    <div class="card col"><h3>Mapa de calor — Setor × Prioridade</h3><div class="sub">Concentração de RRPs por área e nível de urgência</div>${heat}</div></div></section>`;
+}
+const PER_PAGE = 8;
+function sOpen(d, S) {
+  const w = { Alta: 0, 'Média': 1, Baixa: 2 };
+  const open = d.filter(x => x.status !== 'Realizado').sort((a, b) => (w[a.prio] ?? 3) - (w[b.prio] ?? 3) || String(a.mes).localeCompare(String(b.mes)));
+  if (!open.length) return [`<section class="slide">${head('Pendências', 'RRPs em aberto')}<div class="empty">Nenhuma pendência em aberto<small>Todas as ${S.n} RRPs foram realizadas</small></div></section>`];
+  const pages = Math.ceil(open.length / PER_PAGE), out = [];
+  for (let p = 0; p < pages; p++) {
+    const part = open.slice(p * PER_PAGE, (p + 1) * PER_PAGE);
+    out.push(`<section class="slide">${head('Pendências', 'RRPs em aberto' + (pages > 1 ? ` <span style="font-size:28px;color:var(--txt3)">(${p + 1}/${pages})</span>` : ''),
+        `<div class="legend"><span><b>${open.length}</b> em aberto, de ${S.n} RRPs</span></div>`)}
+      <div class="card" style="padding:8px 22px 4px"><table><thead><tr><th>TAG</th><th>Setor</th><th>Mês</th><th>Anomalia</th><th>Recomendação</th><th>Prioridade</th><th>Status</th></tr></thead><tbody>
+      ${part.map(r => `<tr><td><b>${esc(r.tag)}</b></td><td>${esc(r.setor)}</td><td>${fmtMes(r.mes)}</td><td class="an"><div>${esc(r.anomalia) || '—'}</div></td><td>${esc(r.rec) || '—'}</td>
+        <td><span class="pill" style="background:${prColor(r.prio)}">${esc(r.prio)}</span></td><td><span class="pill" style="background:${stColor(r.status)}">${esc(r.status)}</span></td></tr>`).join('')}
+      </tbody></table></div></section>`);
+  }
+  return out;
+}
+function sInsights(d, S) {
+  const sev = { ok: C.green, warn: C.amber, bad: C.red, info: C.blue };
+  const slow = S.setores.map(s => [s, avg(S.sg[s].tm)]).filter(x => x[1] !== null).sort((a, b) => b[1] - a[1])[0];
+  const r1 = S.recList[0], r2 = S.recList[1], topS = S.setores[0];
+  const items = [
+    { t: 'Taxa de implementação', s: S.rPct >= 90 ? 'ok' : S.rPct >= 70 ? 'warn' : 'bad', pill: S.rPct >= 90 ? 'Excelente' : S.rPct >= 70 ? 'Bom' : 'Atenção necessária',
+      p: `${S.rPct}% das ${S.n} RRPs foram implementadas. ${S.pend} registro${S.pend !== 1 ? 's' : ''} ainda em aberto.` },
+    { t: 'Concentração de risco', s: S.aPct > 60 ? 'bad' : S.aPct > 40 ? 'warn' : 'ok', pill: S.aPct > 60 ? 'Nível crítico' : S.aPct > 40 ? 'Monitorar' : 'Controlado',
+      p: `${S.aPct}% das RRPs são de prioridade alta.${topS ? ` O setor "${esc(topS)}" é o mais crítico, com ${S.sg[topS].t} recomendações.` : ''}` },
+    { t: 'Velocidade de resolução', s: S.tAvg === null ? 'info' : S.tAvg < 15 ? 'ok' : S.tAvg < 30 ? 'warn' : 'bad', pill: S.tAvg === null ? 'Sem dados' : S.tAvg < 15 ? 'Rápido' : S.tAvg < 30 ? 'Moderado' : 'Necessita otimização',
+      p: S.tAvg !== null ? `Tempo médio de ${String(S.tAvg).replace('.', ',')} dias para implementação.${slow ? ` Setor mais lento: "${esc(slow[0])}", com ${slow[1].toFixed(1).replace('.', ',')} dias em média.` : ''}` : 'Dados de tempo insuficientes.' },
+    { t: 'Backlog de pendências', s: S.pend === 0 ? 'ok' : S.pend <= 3 ? 'warn' : 'bad', pill: S.pend === 0 ? 'Zerado' : S.pend <= 3 ? 'Atenção' : S.pend <= 8 ? 'Elevado' : 'Crítico',
+      p: `${S.pend} recomendaç${S.pend !== 1 ? 'ões' : 'ão'} ainda pendente${S.pend !== 1 ? 's' : ''} ou com nota aberta.${S.pend > 5 ? ' Volume elevado pode indicar gargalo operacional.' : S.pend > 0 ? ' Acompanhar o progresso.' : ' Todos os itens foram implementados.'}` },
+    { t: 'Ação preventiva predominante', s: 'info', pill: 'Foco preventivo',
+      p: r1 ? `"${esc(r1[0])}" lidera com ${pct(r1[1].c, S.n)}% das recomendações (${r1[1].c} ocorrências)${r2 ? `, seguida de "${esc(r2[0])}" (${r2[1].c})` : ''}.` : 'Sem dados de recomendação.' }
+  ];
+  return `<section class="slide">${head('Conclusões', 'Inteligência analítica')}
+    <div class="ins-grid">${items.map((x, i) => `<div class="card ins ${i === items.length - 1 ? 'wide' : ''}" style="border-left-color:${sev[x.s]}"><h3>${x.t}<span class="pill" style="background:${sev[x.s]}">${x.pill}</span></h3><p>${x.p}</p></div>`).join('')}</div></section>`;
+}
+
+function build() {
+  CHARTS.forEach(c => { try { c.destroy(); } catch (e) {} }); CHARTS = []; CHART_JOBS = [];
+  const d = DATA, S = stats(d);
+  const html = [sCover(d, S), sSummary(d, S), sTimeline(d, S), sSetor(d, S), sPrio(d, S), sEquip(d, S), ...sOpen(d, S), sInsights(d, S)];
+  const deck = document.getElementById('deck');
+  deck.innerHTML = html.join('');
+  const slides = deck.querySelectorAll('.slide');
+  slides.forEach((s, n) => { if (n > 0) s.insertAdjacentHTML('beforeend', foot(n + 1, slides.length)); });
+  if (window.Chart) {
+    Chart.defaults.font.family = "'Inter',sans-serif"; Chart.defaults.font.size = 16; Chart.defaults.color = '#635C50';
+    CHART_JOBS.forEach(j => { try { CHARTS.push(j()); } catch (e) { console.warn(e); } });
+  }
+  IDX = Math.min(IDX, slides.length - 1);
+  document.getElementById('loading').style.display = 'none';
+  syncLabel(); show();
+}
+function show() {
+  const slides = document.querySelectorAll('.slide');
+  slides.forEach((s, n) => s.classList.toggle('active', n === IDX));
+  document.getElementById('counter').textContent = (IDX + 1) + ' / ' + slides.length;
+  document.getElementById('progress').style.width = ((IDX + 1) / slides.length * 100) + '%';
+}
+function go(dir) { const n = document.querySelectorAll('.slide').length; IDX = Math.max(0, Math.min(n - 1, IDX + dir)); show(); }
+function setSync(t) { document.getElementById('sync').textContent = t; }
+function toggleFS() { if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {}); else document.exitFullscreen?.(); }
+function fit() { document.getElementById('deck').style.transform = `scale(${Math.min(innerWidth / 1600, innerHeight / 900)})`; }
+
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = e.key;
+  if (['ArrowRight', 'PageDown', ' ', 'Enter'].includes(k)) { e.preventDefault(); go(1); }
+  else if (['ArrowLeft', 'PageUp', 'Backspace'].includes(k)) { e.preventDefault(); go(-1); }
+  else if (k === 'Home') { IDX = 0; show(); }
+  else if (k === 'End') { IDX = 999; go(0); }
+  else if (k === 'f' || k === 'F') toggleFS();
+  else if (k === 'r' || k === 'R') loadData(true);
+  else if (k === 'p' || k === 'P') window.print();
+  poke();
+});
+let _tx = null;
+document.addEventListener('touchstart', e => { _tx = e.touches[0].clientX; }, { passive: true });
+document.addEventListener('touchend', e => { if (_tx == null) return; const dx = e.changedTouches[0].clientX - _tx; if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1); _tx = null; poke(); });
+let _hideT;
+function poke() { const c = document.getElementById('controls'); c.classList.remove('hidden'); clearTimeout(_hideT); _hideT = setTimeout(() => c.classList.add('hidden'), 3000); }
+document.addEventListener('mousemove', poke);
+
+window.addEventListener('resize', fit);
+fit(); poke();
+loadData();
+setInterval(() => { if (!document.hidden) loadData(); }, AUTO_REFRESH_MS);
+if (AUTO_ADVANCE_S) setInterval(() => { const n = document.querySelectorAll('.slide').length; if (n) { IDX = (IDX + 1) % n; show(); } }, AUTO_ADVANCE_S * 1000);
+</script>
+</body>
+</html>
